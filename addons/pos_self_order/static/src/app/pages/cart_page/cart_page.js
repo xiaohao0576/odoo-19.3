@@ -7,9 +7,11 @@ import { PresetInfoPopup } from "@pos_self_order/app/components/preset_info_popu
 import { useScrollShadow } from "../../utils/scroll_shadow_hook";
 import { CancelPopup } from "@pos_self_order/app/components/cancel_popup/cancel_popup";
 import { TextInputPopup } from "@point_of_sale/app/components/popups/text_input_popup/text_input_popup";
+import { XTabletPinPopup } from "@pos_self_order/app/components/x_tablet_pin_popup/x_tablet_pin_popup";
 import { _t } from "@web/core/l10n/translation";
 import { formatProductName } from "../../utils";
 import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
+import { rpc } from "@web/core/network/rpc";
 import { PillsSelectionPopup } from "@pos_self_order/app/components/pills_selection_popup/pills_selection_popup";
 
 const { DateTime } = luxon;
@@ -116,6 +118,14 @@ export class CartPage extends Component {
     }
 
     async pay() {
+        // x_device_type: tablet mode requires waiter PIN verification before proceeding
+        if (this.selfOrder.x_device_type === "tablet") {
+            const confirmed = await this._verifyTabletPin();
+            if (!confirmed) {
+                return;
+            }
+        }
+
         const presets = this.selfOrder.models["pos.preset"].getAll();
         const config = this.selfOrder.config;
         const type = config.self_ordering_mode;
@@ -209,6 +219,33 @@ export class CartPage extends Component {
 
     get presetTimingOptions() {
         return this.selfOrder.getTimingOptions(this.selfOrder.currentOrder.preset_id);
+    }
+
+    // x_device_type: PIN verification using native numeric keyboard for tablet ordering mode
+    async _verifyTabletPin() {
+        const MAX_ATTEMPTS = 5;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            const pin = await makeAwaitable(this.dialog, XTabletPinPopup, {});
+            if (pin === undefined || pin === null || pin === "") {
+                // Waiter cancelled the dialog or entered empty string
+                return false;
+            }
+            try {
+                const result = await rpc("/pos-self-order/verify-tablet-pin", {
+                    access_token: this.selfOrder.access_token,
+                    pin: String(pin),
+                });
+                if (result.valid) {
+                    return true;
+                }
+                this.selfOrder.notification.add(_t("密码错误，请重试"), { type: "danger" });
+            } catch (error) {
+                // Reuse service-level feedback to distinguish connection/server issues from wrong PIN.
+                this.selfOrder.handleErrorNotification(error);
+                return false;
+            }
+        }
+        return false;
     }
 
     get tableOptions() {

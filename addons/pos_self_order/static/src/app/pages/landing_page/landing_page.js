@@ -15,12 +15,14 @@ export class LandingPage extends Component {
         this.activeSelected = false;
 
         onWillStart(() => {
-            if (this.selfOrder.config.self_ordering_mode === "kiosk") {
+            // x_device_type: tablet mode clears previous order data on landing page, same as kiosk
+            if (this.selfOrder.config.self_ordering_mode === "kiosk" || this.selfOrder.x_device_type === "tablet") {
                 const orders = this.selfOrder.models["pos.order"].getAll();
                 for (const order of orders) {
                     order.delete();
                 }
                 this.selfOrder.selectedOrderUuid = null;
+                this.router.removeTableIdentifier();
             }
             this.selfOrder.rpcLoading = false;
         });

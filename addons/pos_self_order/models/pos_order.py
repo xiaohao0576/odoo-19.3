@@ -42,6 +42,202 @@ class PosOrder(models.Model):
         self._send_notification(order_ids)
         return result
 
+    @api.model
+    def x_sync_from_ui(self, orders):
+        """
+        Tablet-specific order sync: merge new lines into an existing draft order by table_id,
+        or create a new order when no draft exists for the table.
+        x_device_type: called by process_order() when x_device_type == 'tablet'.
+        Returns the same structure as sync_from_ui (read_pos_data format).
+        """
+        import json
+
+        order_ids = []
+
+        for order_data in orders:
+            table_id = order_data.get('self_ordering_table_id')
+            if not table_id:
+                # No table reference — fallback to standard sync for safety
+                return self.sync_from_ui(orders)
+
+            # Search globally for a draft order assigned to this table (per confirmed decision)
+            existing_order = self.env['pos.order'].search([
+                ('table_id', '=', table_id),
+                ('state', '=', 'draft'),
+            ], limit=1, order='id desc')
+
+            if existing_order:
+                order_id = self._x_merge_into_existing_order(existing_order, order_data, json)
+            else:
+                order_id = self._x_create_order_for_table(order_data, table_id, json)
+
+            order_ids.append(order_id)
+
+        pos_order_ids = self.env['pos.order'].browse(order_ids)
+        self._send_notification(pos_order_ids)
+
+        config = pos_order_ids.config_id[:1] if pos_order_ids else False
+        return pos_order_ids.read_pos_data(orders, config)
+
+    def _x_merge_into_existing_order(self, existing_order, order_data, json):
+        """
+        Append only CREATE lines from order_data into existing_order.
+        Existing lines are never modified to keep each ordering batch distinguishable.
+        Merge last_order_preparation_change by keeping existing line states intact.
+        x_device_type: helper for x_sync_from_ui in tablet mode.
+        """
+        new_lines = [
+            line for line in order_data.get('lines', [])
+            if line and line[0] == Command.CREATE
+        ]
+        if new_lines:
+            line_commands = self._x_build_line_merge_commands(existing_order, new_lines)
+            if line_commands:
+                existing_order.write({'lines': line_commands})
+
+        merged_change = self._x_merge_last_preparation_change(existing_order, order_data, json)
+        if merged_change is not None:
+            existing_order.write({
+                'last_order_preparation_change': json.dumps(merged_change)
+            })
+
+        return existing_order.id
+
+    def _x_build_line_merge_commands(self, existing_order, new_lines):
+        """
+        Return only CREATE commands from incoming payload.
+        Existing order lines are intentionally left untouched.
+        """
+        return [
+            [Command.CREATE, 0, dict(line[2])]
+            for line in new_lines
+            if len(line) > 2 and isinstance(line[2], dict)
+        ]
+
+    def _x_merge_last_preparation_change(self, existing_order, order_data, json):
+        """
+        Merge preparation snapshot by preserving all existing line keys.
+        - Existing keys keep their state/content.
+        - New keys from local payload are appended.
+        - For same key/uuid with larger quantity, only quantity is updated.
+        - metadata.serverDate is always refreshed to current server time.
+        """
+        try:
+            server_change = json.loads(existing_order.last_order_preparation_change or '{}') or {}
+        except ValueError:
+            server_change = {}
+
+        try:
+            local_change = json.loads(order_data.get('last_order_preparation_change') or '{}') or {}
+        except ValueError:
+            local_change = {}
+
+        server_lines = server_change.get('lines') if isinstance(server_change.get('lines'), dict) else {}
+        local_lines = local_change.get('lines') if isinstance(local_change.get('lines'), dict) else {}
+
+        merged_lines = dict(server_lines)
+        uuid_to_server_key = {
+            line_value.get('uuid'): line_key
+            for line_key, line_value in server_lines.items()
+            if isinstance(line_value, dict) and line_value.get('uuid')
+        }
+
+        for local_key, local_value in local_lines.items():
+            if not isinstance(local_value, dict):
+                continue
+
+            local_uuid = local_value.get('uuid')
+            local_qty = local_value.get('quantity')
+
+            if local_key in merged_lines and isinstance(merged_lines[local_key], dict):
+                server_value = merged_lines[local_key]
+                server_qty = server_value.get('quantity')
+                if (
+                    local_uuid
+                    and server_value.get('uuid') == local_uuid
+                    and isinstance(local_qty, (int, float))
+                    and isinstance(server_qty, (int, float))
+                    and local_qty > server_qty
+                ):
+                    # Keep printed baseline/state, only move quantity forward.
+                    merged_lines[local_key] = {
+                        **server_value,
+                        'quantity': local_qty,
+                    }
+                continue
+
+            if local_uuid and local_uuid in uuid_to_server_key:
+                server_key = uuid_to_server_key[local_uuid]
+                server_value = merged_lines.get(server_key)
+                server_qty = server_value.get('quantity') if isinstance(server_value, dict) else None
+                if (
+                    isinstance(server_value, dict)
+                    and isinstance(local_qty, (int, float))
+                    and isinstance(server_qty, (int, float))
+                    and local_qty > server_qty
+                ):
+                    merged_lines[server_key] = {
+                        **server_value,
+                        'quantity': local_qty,
+                    }
+                continue
+
+            # Truly new line key: append as-is to preserve local printed/unprinted snapshot.
+            merged_lines[local_key] = local_value
+            if local_uuid:
+                uuid_to_server_key[local_uuid] = local_key
+
+        merged_change = dict(server_change)
+        merged_change['lines'] = merged_lines
+        merged_change['general_customer_note'] = local_change.get(
+            'general_customer_note',
+            server_change.get('general_customer_note', ''),
+        )
+        merged_change['internal_note'] = local_change.get(
+            'internal_note',
+            server_change.get('internal_note', ''),
+        )
+        merged_change['sittingMode'] = local_change.get(
+            'sittingMode',
+            server_change.get('sittingMode', 0),
+        )
+
+        merged_metadata = {}
+        if isinstance(server_change.get('metadata'), dict):
+            merged_metadata.update(server_change['metadata'])
+        if isinstance(local_change.get('metadata'), dict):
+            merged_metadata.update(local_change['metadata'])
+        merged_metadata['serverDate'] = fields.Datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        merged_change['metadata'] = merged_metadata
+
+        return merged_change
+
+    def _x_create_order_for_table(self, order_data, table_id, json):
+        """
+        Create a new pos.order via _process_order with table_id set from self_ordering_table_id.
+        Updates serverDate in last_order_preparation_change after creation.
+        x_device_type: helper for x_sync_from_ui in tablet mode.
+        """
+        # Inject table_id so the created order is linked to the restaurant table
+        order_data['table_id'] = table_id
+
+        new_order_id = self._process_order(order_data, False)
+
+        # Force serverDate to now to prevent stale client data from overwriting future changes
+        new_order = self.env['pos.order'].browse(new_order_id)
+        if new_order.last_order_preparation_change:
+            try:
+                change = json.loads(new_order.last_order_preparation_change)
+                if change.get('metadata') is not None:
+                    change['metadata']['serverDate'] = fields.Datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    new_order.write({
+                        'last_order_preparation_change': json.dumps(change)
+                    })
+            except (ValueError, KeyError):
+                pass
+
+        return new_order_id
+
     def cancel_order_from_pos(self):
         orders = super().cancel_order_from_pos()
         success_orders_ids = [o['id'] for o in orders['pos.order'] if o['state'] == 'cancel']

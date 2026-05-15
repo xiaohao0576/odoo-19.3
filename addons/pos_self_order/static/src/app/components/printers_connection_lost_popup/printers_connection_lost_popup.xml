@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order.PrintersConnectionLostPopup">
+        <div class="self_order_network_popup o_dialog">
+            <div role="dialog" class="modal d-block" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body p-4 overflow-visible">
+                            <div class="position-absolute top-0 start-50 translate-middle px-4 py-3 rounded-4 border border-white border-5"
+                                t-att-class="this.state.online ? 'text-bg-success' : 'text-bg-danger'">
+                                <i t-att-class="this.state.online ? 'fa fa-check-circle' : 'fa fa-print'" aria-hidden="true"/>
+                            </div>
+                            <div class="mt-4 text-center">
+                                <h1>
+                                    <t t-if="this.state.online">网络恢复正常</t>
+                                    <t t-else="">网络连接错误</t>
+                                </h1>
+                                <span class="text-muted">
+                                    <t t-if="this.state.online">网络恢复正常，您可以继续下单。</t>
+                                    <t t-else="">无法和打印机建立连接，请到前台收银机下单</t>
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-center w-100 mt-4">
+                                <button type="button" class="btn btn-primary btn-lg popup_button" t-on-click="() => this.props.close()">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

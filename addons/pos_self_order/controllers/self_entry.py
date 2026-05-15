@@ -7,8 +7,16 @@ from odoo.http import request
 
 class PosSelfKiosk(http.Controller):
     @http.route(["/pos-self/<config_id>", "/pos-self/<config_id>/<path:subpath>"], auth="public", website=True, sitemap=True)
-    def start_self_ordering(self, config_id=None, access_token=None, table_identifier=None, subpath=None):
+    def start_self_ordering(self, config_id=None, access_token=None, table_identifier=None, subpath=None, x_device_type=None):
         pos_config, _, config_access_token = self._verify_entry_access(config_id, access_token, table_identifier)
+        # x_device_type: custom field for tablet ordering mode. Accepted values: 'tablet' or None.
+        x_device_type = x_device_type if x_device_type in ('tablet',) else None
+        data = {
+            'config_id': pos_config.id,
+            'self_ordering_mode': pos_config.self_ordering_mode,
+        }
+        if x_device_type:
+            data['x_device_type'] = x_device_type
         return request.render(
                 'pos_self_order.index',
                 {
@@ -16,10 +24,7 @@ class PosSelfKiosk(http.Controller):
                     'session_info': {
                         **request.env["ir.http"].get_frontend_session_info(),
                         'currencies': request.env["res.currency"].get_all_currencies(),
-                        'data': {
-                            'config_id': pos_config.id,
-                            'self_ordering_mode': pos_config.self_ordering_mode,
-                        },
+                        'data': data,
                         "base_url": request.env['pos.session'].get_base_url(),
                         "db": request.env.cr.dbname,
                     }

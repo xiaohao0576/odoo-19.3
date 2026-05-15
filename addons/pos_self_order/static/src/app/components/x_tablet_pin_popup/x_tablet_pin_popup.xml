@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_self_order.XTabletPinPopup">
+        <div class="x_tablet_pin_popup o_dialog">
+            <div role="dialog" class="modal d-block" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title w-100 text-center">请输入服务员密码</h5>
+                            <button type="button" class="btn-close" t-on-click="() => this.props.close()"/>
+                        </div>
+                        <div class="modal-body px-4 pt-3 pb-2">
+                            <input
+                                t-ref="input"
+                                type="password"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                autocomplete="off"
+                                class="form-control form-control-lg text-center"
+                                t-model="state.value"
+                                t-on-keydown="onKeydown"
+                            />
+                        </div>
+                        <div class="modal-footer justify-content-center gap-3 pb-4">
+                            <button type="button" class="btn btn-secondary btn-lg flex-fill" t-on-click="() => this.props.close()">取消</button>
+                            <button type="button" class="btn btn-primary btn-lg flex-fill" t-on-click="confirm">确认</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

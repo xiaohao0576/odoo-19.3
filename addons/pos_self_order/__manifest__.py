@@ -2,7 +2,7 @@
     "name": "POS Self Order",
     "summary": "Addon for the POS App that allows customers to view the menu on their smartphone.",
     "category": "Sales/Point Of Sale",
-    "depends": ["pos_restaurant", "http_routing", "link_tracker", "google_address_autocomplete", "base_geolocalize"],
+    "depends": ["point_of_sale", "pos_restaurant", "http_routing", "link_tracker", "google_address_autocomplete", "base_geolocalize"],
     "auto_install": ["pos_restaurant"],
     "data": [
         "security/ir.model.access.csv",
@@ -105,6 +105,7 @@
             "point_of_sale/static/src/app/components/epos_templates.xml",
             "point_of_sale/static/src/css/pos_receipts.css",
             "pos_self_order/static/src/overrides/utils/printer/generate_printer_data.js",
+            "pos_restaurant/static/src/app/utils/printer/generate_printer_data.js",
             "point_of_sale/static/src/app/utils/printer/*",
             'point_of_sale/static/src/app/utils/html-to-image.js',
             'point_of_sale/static/src/app/utils/use_timed_press.js',

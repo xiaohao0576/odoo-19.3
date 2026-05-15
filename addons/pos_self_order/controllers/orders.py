@@ -25,7 +25,7 @@ def _haversine_distance(lat1, long1, lat2, long2):
 
 class PosSelfOrderController(http.Controller):
     @http.route("/pos-self-order/process-order/<device_type>/", auth="public", type="jsonrpc", website=True)
-    def process_order(self, order, access_token, table_identifier, device_type):
+    def process_order(self, order, access_token, table_identifier, device_type, x_device_type=None):
         pos_config, table = self._verify_authorization(access_token, table_identifier, order)
         if not pos_config.self_ordering_mode == device_type:
             raise Unauthorized("Invalid device type")
@@ -33,7 +33,13 @@ class PosSelfOrderController(http.Controller):
         # Create a safe copy of the order with only the necessary fields for order creation to
         # avoid potential security issues and to reduce the payload size
         safe_data = pos_config.env['pos.order']._check_pos_order(pos_config, order, device_type, table)
-        results = pos_config.env['pos.order'].sudo().with_company(pos_config.company_id.id).sync_from_ui([safe_data])
+
+        # x_device_type: tablet mode uses x_sync_from_ui to merge into existing draft order by table_id
+        if x_device_type == 'tablet':
+            results = pos_config.env['pos.order'].sudo().with_company(pos_config.company_id.id).x_sync_from_ui([safe_data])
+        else:
+            results = pos_config.env['pos.order'].sudo().with_company(pos_config.company_id.id).sync_from_ui([safe_data])
+
         order_ids = pos_config.env['pos.order'].browse([order['id'] for order in results['pos.order']])
         preset_id = order_ids.preset_id
 
@@ -314,3 +320,19 @@ class PosSelfOrderController(http.Controller):
     def pos_ping(self, access_token):
         self._verify_pos_config(access_token, check_active_session=False)
         return {'response': 'pong'}
+
+    @http.route('/pos-self-order/verify-tablet-pin', auth='public', type='jsonrpc', website=True)
+    def verify_tablet_pin(self, access_token, pin):
+        # x_device_type: validates waiter PIN for tablet ordering mode before order confirmation
+        # Uses res.users.barcode of the session user as the PIN.
+        pos_config = self._verify_pos_config(access_token)
+        session = pos_config.env['pos.session'].sudo().search(
+            [('config_id', '=', pos_config.id), ('state', '=', 'opened')], limit=1
+        )
+        if not session:
+            return {'valid': False}
+        stored_pin = session.user_id.sudo().barcode or ""
+        if not stored_pin:
+            return {'valid': False}
+        # Use consteq for timing-safe string comparison to avoid timing attacks
+        return {'valid': consteq(stored_pin, str(pin or ""))}

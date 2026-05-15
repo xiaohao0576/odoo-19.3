@@ -6,9 +6,11 @@ import { markup } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { registry } from "@web/core/registry";
 import { cookie } from "@web/core/browser/cookie";
+import { session } from "@web/session";
 import { formatDateTime, serializeDateTime } from "@web/core/l10n/dates";
 import { TimeoutPopup } from "@pos_self_order/app/components/timeout_popup/timeout_popup";
 import { NetworkConnectionLostPopup } from "@pos_self_order/app/components/network_connectionLost_popup/network_connectionLost_popup";
+import { PrintersConnectionLostPopup } from "@pos_self_order/app/components/printers_connection_lost_popup/printers_connection_lost_popup";
 import { UnavailableProductsDialog } from "@pos_self_order/app/components/unavailable_product_dialog/unavailable_product_dialog";
 import {
     constructFullProductName,
@@ -64,6 +66,8 @@ export class SelfOrder extends Reactive {
 
         this.markupDescriptions();
         this.access_token = odoo.access_token;
+        // x_device_type: custom field for tablet ordering mode. Value comes from URL query param.
+        this.x_device_type = session.data.x_device_type || null;
         this.lastEditedProductId = null;
         this.currentProduct = 0;
         this.priceLoading = false;
@@ -85,7 +89,8 @@ export class SelfOrder extends Reactive {
         };
 
         this.initData();
-        if (this.config.self_ordering_mode === "kiosk") {
+        // x_device_type: tablet mode uses kiosk initialization path (no IndexedDB, no draft order restore)
+        if (this.config.self_ordering_mode === "kiosk" || this.x_device_type === "tablet") {
             await this.initKioskData();
         } else {
             await this.initMobileData();
@@ -468,6 +473,44 @@ export class SelfOrder extends Reactive {
         const device = this.config.self_ordering_mode; // kiosk, mobile
         const service = this.selfService; // table, counter, delivery
 
+        // x_device_type: tablet mode skips standard flow - checks printer reachability then sends via x_sync_from_ui
+        if (this.x_device_type === "tablet") {
+            const orderTable = this.currentOrder.self_ordering_table_id || this.currentTable;
+            if (orderTable) {
+                // Ensure kitchen tickets include table information.
+                this.currentOrder.self_ordering_table_id = orderTable;
+                this.currentOrder.table_id = orderTable;
+            }
+            // Step 1: Check printer connectivity before doing anything
+            try {
+                await this.ticketPrinter.pingPrinters();
+            } catch (error) {
+                // Printer unreachable - show retry popup and return to cart
+                this.dialog.add(PrintersConnectionLostPopup, {
+                    close: () => this.dialog.closeAll(),
+                });
+                this.router.navigate("cart");
+                return;
+            }
+            // Step 2: Print order changes to kitchen/receipt printers
+            try {
+                await this.ticketPrinter.printOrderChanges({ order: this.currentOrder });
+            } catch (error) {
+                this.handleErrorNotification(error);
+                this.router.navigate("cart");
+                return;
+            }
+            // Step 3: Mark current lines as sent to kitchen
+            this.currentOrder.updateLastOrderChange();
+            // Step 4: Persist order on server (x_sync_from_ui merges by table_id)
+            const order = await this.sendNewOrderToServer();
+            if (!order) {
+                return;
+            }
+            this.confirmationPage("order", device, order.access_token);
+            return;
+        }
+
         let order = this.currentOrder;
         const orderHasChanges = Object.keys(order.changes).length > 0;
 
@@ -782,6 +825,46 @@ export class SelfOrder extends Reactive {
 
     shouldUpdateLastOrderChange() {
         return this.config.self_ordering_mode !== "kiosk";
+    }
+
+    // x_device_type: tablet mode order send - no changes check, always sends, includes x_device_type in payload
+    async sendNewOrderToServer() {
+        if (this.currentOrder.lines.length === 0) {
+            return this.currentOrder;
+        }
+        const order = this.currentOrder;
+        try {
+            this.currentOrder.setOrderPrices();
+            const tableIdentifier = this.router.getTableIdentifier();
+            let uuid = this.selectedOrderUuid;
+            // x_device_type: tablet mode already called updateLastOrderChange() after printing in confirmOrder
+            if (this.shouldUpdateLastOrderChange() && this.x_device_type !== "tablet") {
+                this.currentOrder.updateLastOrderChange();
+            }
+            const data = await rpc(
+                `/pos-self-order/process-order/${this.config.self_ordering_mode}`,
+                {
+                    order: this.currentOrder.serializeForORM(),
+                    access_token: this.access_token,
+                    table_identifier: tableIdentifier,
+                    x_device_type: this.x_device_type,
+                }
+            );
+            const result = this.models.connectNewData(data);
+            if (result["pos.order"][0].uuid !== this.selectedOrderUuid) {
+                this.orderTakeAwayState[result["pos.order"][0].uuid] =
+                    this.orderTakeAwayState[this.selectedOrderUuid];
+                delete this.orderTakeAwayState[this.selectedOrderUuid];
+                this.currentOrder.delete();
+                uuid = result["pos.order"][0].uuid;
+            }
+            this.data.debouncedSynchronizeLocalDataInIndexedDB();
+            this.currentOrder.recomputeChanges();
+            return this.models["pos.order"].getBy("uuid", uuid);
+        } catch (error) {
+            this.handleErrorNotification(error, [order.access_token]);
+            return false;
+        }
     }
 
     async sendDraftOrderToServer() {

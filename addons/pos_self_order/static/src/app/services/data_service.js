@@ -34,32 +34,38 @@ export const unpatchSelf = patch(PosData.prototype, {
         return false;
     },
     initIndexedDB() {
-        return session.data.self_ordering_mode === "mobile"
+        // x_device_type: tablet mode bypasses IndexedDB to prevent cross-table data pollution
+        return session.data.self_ordering_mode === "mobile" && session.data.x_device_type !== "tablet"
             ? super.initIndexedDB(...arguments)
             : true;
     },
     initListeners() {
-        return session.data.self_ordering_mode === "mobile"
+        // x_device_type: tablet mode bypasses IndexedDB to prevent cross-table data pollution
+        return session.data.self_ordering_mode === "mobile" && session.data.x_device_type !== "tablet"
             ? super.initListeners(...arguments)
             : true;
     },
     synchronizeLocalDataInIndexedDB() {
-        return session.data.self_ordering_mode === "mobile"
+        // x_device_type: tablet mode bypasses IndexedDB to prevent cross-table data pollution
+        return session.data.self_ordering_mode === "mobile" && session.data.x_device_type !== "tablet"
             ? super.synchronizeLocalDataInIndexedDB(...arguments)
             : true;
     },
     synchronizeServerDataInIndexedDB() {
-        return session.data.self_ordering_mode === "mobile"
+        // x_device_type: tablet mode bypasses IndexedDB to prevent cross-table data pollution
+        return session.data.self_ordering_mode === "mobile" && session.data.x_device_type !== "tablet"
             ? super.synchronizeServerDataInIndexedDB(...arguments)
             : true;
     },
     async getCachedServerDataFromIndexedDB() {
-        return session.data.self_ordering_mode === "mobile"
+        // x_device_type: tablet mode bypasses IndexedDB to prevent cross-table data pollution
+        return session.data.self_ordering_mode === "mobile" && session.data.x_device_type !== "tablet"
             ? await super.getCachedServerDataFromIndexedDB(...arguments)
             : {};
     },
     async getLocalDataFromIndexedDB() {
-        return session.data.self_ordering_mode === "mobile"
+        // x_device_type: tablet mode bypasses IndexedDB to prevent cross-table data pollution
+        return session.data.self_ordering_mode === "mobile" && session.data.x_device_type !== "tablet"
             ? await super.getLocalDataFromIndexedDB(...arguments)
             : {};
     },
@@ -68,7 +74,8 @@ export const unpatchSelf = patch(PosData.prototype, {
     },
     async checkAndDeleteMissingOrders(results) {},
     async deleteRecordsInIndexedDB(model, ids) {
-        return session.data.self_ordering_mode === "mobile"
+        // x_device_type: tablet mode bypasses IndexedDB to prevent cross-table data pollution
+        return session.data.self_ordering_mode === "mobile" && session.data.x_device_type !== "tablet"
             ? await super.deleteRecordsInIndexedDB(...arguments)
             : true;
     },

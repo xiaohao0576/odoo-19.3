@@ -26,6 +26,12 @@ export class SelfOrderRouter extends Reactive {
         history.replaceState({}, "", url);
     }
 
+    removeTableIdentifier() {
+        const url = new URL(browser.location.href);
+        url.searchParams.delete("table_identifier");
+        history.replaceState({}, "", url);
+    }
+
     getTableIdentifier() {
         const url = new URL(browser.location.href);
         return url.searchParams.get("table_identifier");

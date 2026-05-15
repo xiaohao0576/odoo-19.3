@@ -1,0 +1,13 @@
+import { BaseOptionComponent } from "@html_builder/core/base_option_component";
+import { WebsiteBackgroundOption } from "@website/builder/plugins/options/background_option";
+import { registry } from "@web/core/registry";
+
+export class MediaListItemOption extends BaseOptionComponent {
+    static id = "media_list_item_option";
+    static template = "website.MediaListItemOption";
+    static components = {
+        WebsiteBackgroundOption,
+    };
+}
+
+registry.category("website-options").add(MediaListItemOption.id, MediaListItemOption);

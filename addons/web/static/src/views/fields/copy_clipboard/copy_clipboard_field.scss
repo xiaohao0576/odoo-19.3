@@ -1,0 +1,4 @@
+.o_field_CopyClipboardChar :is(span, input):not(.fa-clipboard) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

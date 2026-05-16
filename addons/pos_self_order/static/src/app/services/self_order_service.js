@@ -716,7 +716,7 @@ export class SelfOrder extends Reactive {
                         },
                     });
                 }
-            }, 1000 * 90);
+            }, 1000 * 900);
         });
     }
 

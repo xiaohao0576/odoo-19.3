@@ -40,6 +40,8 @@ export class selfOrderIndex extends Component {
         this.selfOrder = useSelfOrder();
         window.posmodel = this.selfOrder;
 
+        this._setupPwa();
+
         // Disable cursor on touch devices (required on IoT Box Kiosk)
         if (hasTouch()) {
             document.body.classList.add("touch-device");
@@ -55,6 +57,34 @@ export class selfOrderIndex extends Component {
             initDebugFormatters();
         }
     }
+
+    _setupPwa() {
+        const url = new URL(window.location.href);
+        const pathMatch = url.pathname.match(/^\/pos-self\/(\d+)/);
+        const configId = pathMatch?.[1];
+        const accessToken = url.searchParams.get("access_token") || window.odoo?.access_token;
+        const xDeviceType = url.searchParams.get("x_device_type");
+
+        if (!configId || !accessToken || xDeviceType !== "tablet") {
+            return;
+        }
+
+        const manifestUrl = `/pos-self/manifest.json?path=${encodeURIComponent(`/pos-self/${configId}`)}&access_token=${encodeURIComponent(accessToken)}&x_device_type=tablet`;
+
+        // Ensure there is exactly one manifest link and keep it up to date.
+        let manifestLink = document.querySelector('link[rel="manifest"]');
+        if (!manifestLink) {
+            manifestLink = document.createElement("link");
+            manifestLink.rel = "manifest";
+            document.head.appendChild(manifestLink);
+        }
+        manifestLink.href = manifestUrl;
+
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("/pos-self/service-worker.js", { scope: "/pos-self/" });
+        }
+    }
+
     get selfIsReady() {
         return this.selfOrder.models["product.product"].length > 0;
     }

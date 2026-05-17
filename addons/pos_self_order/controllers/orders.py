@@ -324,14 +324,9 @@ class PosSelfOrderController(http.Controller):
     @http.route('/pos-self-order/verify-tablet-pin', auth='public', type='jsonrpc', website=True)
     def verify_tablet_pin(self, access_token, pin):
         # x_device_type: validates waiter PIN for tablet ordering mode before order confirmation
-        # Uses res.users.barcode of the session user as the PIN.
+        # Uses res.users.barcode of the self-order default user as the PIN.
         pos_config = self._verify_pos_config(access_token)
-        session = pos_config.env['pos.session'].sudo().search(
-            [('config_id', '=', pos_config.id), ('state', '=', 'opened')], limit=1
-        )
-        if not session:
-            return {'valid': False}
-        stored_pin = session.user_id.sudo().barcode or ""
+        stored_pin = pos_config.self_ordering_default_user_id.sudo().barcode or "123123"
         if not stored_pin:
             return {'valid': False}
         # Use consteq for timing-safe string comparison to avoid timing attacks

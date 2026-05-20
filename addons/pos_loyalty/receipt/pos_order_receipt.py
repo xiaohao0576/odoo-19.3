@@ -15,7 +15,7 @@ class PosOrderReceipt(models.AbstractModel):
         histories = self.env['loyalty.history'].search([('order_id', '=', self.id), ('order_model', '=', 'pos.order')])
         for history in histories:
             program_type = history.card_id.program_id.program_type
-            if program_type == 'loyalty':
+            if program_type in ['loyalty', 'ewallet']:
                 for field, label in [('issued', _('Won:')), ('used', _('Spent:'))]:
                     amount = history[field]
                     if amount > 0:

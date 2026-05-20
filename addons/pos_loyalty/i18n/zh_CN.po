@@ -152,7 +152,7 @@ msgstr "可用奖赏"
 #. odoo-python
 #: code:addons/pos_loyalty/receipt/pos_order_receipt.py:0
 msgid "Balance:"
-msgstr ""
+msgstr "会员余额："
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__promo_barcode
@@ -594,7 +594,7 @@ msgstr "有些优惠券是无效的，申请的优惠券已更新。请检查订
 #. odoo-python
 #: code:addons/pos_loyalty/receipt/pos_order_receipt.py:0
 msgid "Spent:"
-msgstr ""
+msgstr "会员消费："
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_loyalty_rule__any_product
@@ -824,7 +824,7 @@ msgstr "无论这一行是否是奖励的一部分"
 #. odoo-python
 #: code:addons/pos_loyalty/receipt/pos_order_receipt.py:0
 msgid "Won:"
-msgstr ""
+msgstr "会员充值："
 
 #. module: pos_loyalty
 #. odoo-javascript
@@ -883,4 +883,4 @@ msgstr ""
 #. odoo-python
 #: code:addons/pos_loyalty/receipt/pos_order_receipt.py:0
 msgid "used"
-msgstr ""
+msgstr "已使用"

@@ -335,8 +335,8 @@ patch(PosOrder.prototype, {
         for (const pointChange of Object.values(this.uiState.couponPointChanges)) {
             const { coupon_id, points, program_id } = pointChange;
             const program = this.models["loyalty.program"].get(program_id);
-            if (program.program_type !== "loyalty") {
-                // Not a loyalty program, skip
+            if (!["loyalty", "ewallet"].includes(program.program_type)) {
+                // Not a loyalty/ewallet program, skip
                 continue;
             }
             const loyaltyCard =

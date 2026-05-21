@@ -9,7 +9,7 @@ patch(ControlButtons.prototype, {
         this.dialog.add(NumberPopup, {
             title: _t("Discount"),
             startingValue: String(this.pos.config.discount_pc || 0),
-            startingType: "percent",
+            startingType: "fixed",
             types: [
                 { name: "fixed", symbol: this.pos.currency.symbol },
                 { name: "percent", symbol: "%" },

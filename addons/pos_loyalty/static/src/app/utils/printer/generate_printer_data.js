@@ -1,6 +1,5 @@
 import { patch } from "@web/core/utils/patch";
 import { GeneratePrinterData } from "@point_of_sale/app/utils/printer/generate_printer_data";
-import { _t } from "@web/core/l10n/translation";
 
 /**
  * This class is a JS copy of the class PosOrderReceipt in Python.
@@ -9,15 +8,19 @@ patch(GeneratePrinterData.prototype, {
     generateReceiptData() {
         const data = super.generateReceiptData(...arguments);
         const points = this.order.getLoyaltyPoints();
+        const loyaltyLabelByKey = {
+            won: "会员充值金额：",
+            spent: "会员消费金额：",
+            balance: "会员当前余额：",
+        };
         data.extra_data.loyalties = [];
 
         for (const coupon of points) {
-            for (const label of ["Won", "Spent", "Balance"]) {
-                const key = label.toLowerCase();
+            for (const key of ["won", "spent", "balance"]) {
                 if (coupon.points[key]) {
                     data.extra_data.loyalties.push({
                         name: coupon.program.portal_point_name,
-                        type: _t(label + ":"),
+                        type: loyaltyLabelByKey[key],
                         points: coupon.points[key],
                     });
                 }

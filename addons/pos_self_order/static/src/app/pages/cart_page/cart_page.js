@@ -270,7 +270,7 @@ export class CartPage extends Component {
 
             options.categories[table.floor_id.id].subCategories.table.options.push({
                 id: table.id,
-                name: table.table_number,
+                name: table.table_name || table.table_number,
             });
         }
 

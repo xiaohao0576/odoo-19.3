@@ -475,7 +475,7 @@ export class SelfOrder extends Reactive {
 
         // x_device_type: tablet mode skips standard flow - checks printer reachability then sends via x_sync_from_ui
         if (this.x_device_type === "tablet") {
-            const orderTable = this.currentOrder.self_ordering_table_id || this.currentTable;
+            const orderTable = this.currentTable || this.currentOrder.self_ordering_table_id;
             if (orderTable) {
                 // Ensure kitchen tickets include table information.
                 this.currentOrder.self_ordering_table_id = orderTable;

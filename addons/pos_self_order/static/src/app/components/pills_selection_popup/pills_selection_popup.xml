@@ -31,11 +31,12 @@
                         <div class="container-fluid mt-2 mx-auto px-0 overflow-x-hidden no-scrollbar">
                             <div class="row gx-1 gy-1 w-100">
                                 <div class="col-4 col-sm-3 col-md-2" t-foreach="options" t-as="option" t-key="option.id">
-                                    <button class="option-item btn btn-secondary btn-sm w-100 py-2 fw-bold"
+                                    <button class="option-item btn btn-sm w-100 py-2 fw-bold"
                                         t-out="option.name"
                                         t-on-click="() => this.selectOption(option.id)"
                                         t-att-class="{
-                                            'border border-primary': this.state.selectedOptionId === option.id,
+                                            'btn-primary option-item-selected border border-primary shadow-sm': this.state.selectedOptionId === option.id,
+                                            'btn-secondary': this.state.selectedOptionId !== option.id,
                                         }" />
                                 </div>
                             </div>

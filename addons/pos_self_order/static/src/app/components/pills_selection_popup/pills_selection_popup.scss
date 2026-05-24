@@ -9,6 +9,17 @@
     }
 }
 
+.self_order_pills_selection_popup {
+    .option-item {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .option-item-selected {
+        transform: translateY(-1px);
+        box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), 0.2), var(--box-shadow-sm);
+    }
+}
+
 .no-scrollbar {
     -ms-overflow-style: none;
     /* IE and Edge */

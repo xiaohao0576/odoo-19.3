@@ -254,6 +254,11 @@ export class CartPage extends Component {
         };
 
         for (const table of this.selfOrder.models["restaurant.table"].getAll()) {
+            const tableName = (table.table_name || "").trim();
+            if (!tableName) {
+                continue;
+            }
+
             if (!options.categories[table.floor_id.id]) {
                 options.categories[table.floor_id.id] = {
                     id: table.floor_id.id,
@@ -270,7 +275,7 @@ export class CartPage extends Component {
 
             options.categories[table.floor_id.id].subCategories.table.options.push({
                 id: table.id,
-                name: table.table_name || table.table_number,
+                name: tableName,
             });
         }
 

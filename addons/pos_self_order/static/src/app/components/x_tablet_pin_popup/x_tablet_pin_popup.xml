@@ -12,16 +12,19 @@
                         <div class="modal-body px-4 pt-3 pb-2">
                             <input
                                 t-ref="input"
-                                type="password"
+                                type="text"
                                 inputmode="numeric"
                                 pattern="[0-9]*"
-                                autocomplete="one-time-code"
+                                autocomplete="off"
                                 autocorrect="off"
                                 autocapitalize="off"
                                 spellcheck="false"
-                                name="waiter_pin"
-                                class="form-control form-control-lg text-center"
+                                data-1p-ignore="true"
+                                data-lpignore="true"
+                                data-bwignore="true"
+                                class="form-control form-control-lg text-center x_tablet_pin_input"
                                 t-model="state.value"
+                                t-on-input="onInput"
                                 t-on-keydown="onKeydown"
                             />
                         </div>

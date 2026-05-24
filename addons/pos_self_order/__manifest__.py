@@ -58,6 +58,7 @@
         "pos_self_order.assets": [
             "pos_self_order/static/src/app/primary_variables.scss",
             "pos_self_order/static/src/app/bootstrap_overridden.scss",
+            "pos_self_order/static/src/app/components/x_tablet_pin_popup/x_tablet_pin_popup.scss",
             ("include", "point_of_sale.base_app"),
             "google_address_autocomplete/static/src/google_places_session.js",
             "google_address_autocomplete/static/src/address_autocomplete/google_address_autocomplete.js",

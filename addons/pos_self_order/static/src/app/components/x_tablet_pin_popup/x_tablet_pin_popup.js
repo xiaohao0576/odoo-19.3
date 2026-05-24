@@ -20,6 +20,14 @@ export class XTabletPinPopup extends Component {
         this.props.close();
     }
 
+    onInput(ev) {
+        const digitsOnly = ev.target.value.replace(/\D+/g, "");
+        if (digitsOnly !== ev.target.value) {
+            ev.target.value = digitsOnly;
+        }
+        this.state.value = digitsOnly;
+    }
+
     onKeydown(ev) {
         if (ev.key === "Enter") {
             this.confirm();

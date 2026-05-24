@@ -48,6 +48,8 @@ package.json
 /dist/
 /include/
 /lib/
-/man/
+/man/     
 /share/
 /src/
+.venv/
+venv/

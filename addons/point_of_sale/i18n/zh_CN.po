@@ -7285,7 +7285,7 @@ msgstr "打印收据"
 #. odoo-javascript
 #: code:addons/point_of_sale/static/src/app/components/navbar/navbar.xml:0
 msgid "Print Report"
-msgstr ""
+msgstr "打印报告"
 
 #. module: point_of_sale
 #. odoo-javascript

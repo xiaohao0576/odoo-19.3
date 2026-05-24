@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="send_report" model="ir.actions.server">
+        <field name="name">Send POS Session Report</field>
+        <field name="model_id" ref="point_of_sale.model_pos_session"/>
+        <field name="state">code</field>
+        <field name="code"><![CDATA[
+record.ensure_one()
+
+text = f'结业报告 - {record.name}\n'
+
+def _div():
+    return '-' * 50 + '\n'
+
+text += _div()
+
+# 会话开始时间
+start_time = record._fields['start_at'].context_timestamp(record, record.start_at).strftime('%Y-%m-%d %H:%M:%S')
+text += f'开业时间: {start_time} \n'
+
+# 会话结束时间
+if record.stop_at:
+    stop_time = record._fields['stop_at'].context_timestamp(record, record.stop_at).strftime('%Y-%m-%d %H:%M:%S')
+else:
+    stop_time=''
+text += f'结业时间: {stop_time} \n'
+
+text += _div()
+
+# 统计营业额
+orders = env['report.pos.order'].search([('state', '!=', 'cancel'), ('session_id', '=', record.id), ('product_id', 'not in', [843, 845, 847])])
+total = sum(o.price_total for o in orders)
+text += f'营业额: {total:.2f}$\n'
+
+# 统计折扣
+orders = env['report.pos.order'].search([('state', '!=', 'cancel'), ('session_id', '=', record.id), ('product_id', 'in', [843])])
+total = -sum(o.price_total for o in orders)
+text += f'折扣金额: {total:.2f}$\n'
+
+# 统计会员消费
+orders = env['report.pos.order'].search([('state', '!=', 'cancel'), ('session_id', '=', record.id), ('product_id', 'in', [847])])
+total = -sum(o.price_total for o in orders)
+text += f'会员消费金额: {total:.2f}$\n'
+
+text += _div()
+
+# 统计会话收款信息
+domain = record._get_captured_payments_domain()
+payments = env['pos.payment']._read_group(domain=domain, groupby=['payment_method_id'], aggregates=['amount:sum'], order='payment_method_id')
+
+for payment_method, total_amount in payments:
+    if payment_method.type == 'pay_later':
+        continue
+    text += f'{payment_method.name}收款: {total_amount:.2f}$\n'
+
+# 统计客户挂账
+text += _div()
+
+domain = record._get_captured_payments_domain()
+domain += [('payment_method_id', 'in', [3])]  # 客户挂账
+payments = env['pos.payment'].search(domain)
+
+debit, credit = 0, 0
+for pay in payments:
+    amount = pay.amount
+    if amount >= 0:
+        debit += amount
+    else:
+        credit += amount
+
+if debit:
+    text += f'新增客户挂账: {debit:.2f}$\n'
+
+if credit:
+    text += f'客户挂账回款: {-credit:.2f}$\n'
+
+# # 累计客户挂账
+# due_orders = env['pos.order'].search(['&', ('customer_due_total', '>', 0), ('state', 'in', ['paid', 'done'])])
+# due_amount = sum([o.customer_due_total for o in due_orders])
+# if due_amount:
+#     text += f'客户挂账剩余{len(due_orders)}单，金额{due_amount:.2f}$\n'
+
+action = text
+        ]]></field>
+    </record>
+</odoo>

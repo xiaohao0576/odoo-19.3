@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="pos_restaurant.floor_screen_element" t-inherit-mode="extension" owl="1">
+        <xpath expr="//div[contains(@t-attf-class, 'o_fp_table')]" position="inside">
+            <t t-set="draftOrderCount" t-value="this.getTableDraftOrderCount(table)"/>
+            <div t-if="draftOrderCount > 0" class="position-absolute bottom-0 start-50 p-1 z-3" style="transform: translate(-50%, 45%);">
+                <span class="badge rounded-pill text-bg-warning shadow-sm fw-semibold" style="font-size: 0.92rem;">
+                    <t t-out="this.getTableDraftOrderAmountLabel(table)"/>
+                </span>
+            </div>
+        </xpath>
+    </t>
+</templates>

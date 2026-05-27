@@ -824,7 +824,8 @@ export class SelfOrder extends Reactive {
     }
 
     shouldUpdateLastOrderChange() {
-        return this.config.self_ordering_mode !== "kiosk";
+        // return this.config.self_ordering_mode !== "kiosk";
+        return false; 
     }
 
     // x_device_type: tablet mode order send - no changes check, always sends, includes x_device_type in payload

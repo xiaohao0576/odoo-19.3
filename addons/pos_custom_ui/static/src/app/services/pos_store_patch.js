@@ -3,6 +3,86 @@ import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { getOrderChanges } from "@point_of_sale/app/models/utils/order_change";
 
 patch(PosStore.prototype, {
+    _getStrictTableMergeTarget(destinationTable, sourceOrder) {
+        const targetTable = destinationTable?.rootTable || destinationTable;
+        if (!targetTable?.id) {
+            return null;
+        }
+
+        return (
+            this.models["pos.order"].find(
+                (order) =>
+                    !order.finalized &&
+                    order.table_id?.id === targetTable.id &&
+                    (!sourceOrder || order.uuid !== sourceOrder.uuid)
+            ) || null
+        );
+    },
+    async mergeOrders(sourceOrder, destOrder) {
+        // Guard against accidental self-merge or empty destination.
+        if (!sourceOrder || !destOrder || sourceOrder.uuid === destOrder.uuid) {
+            return destOrder || sourceOrder;
+        }
+        return await super.mergeOrders(...arguments);
+    },
+    async transferOrder(orderUuid, destinationTable = null, destinationOrder = null) {
+        if (!destinationTable && !destinationOrder) {
+            return;
+        }
+
+        const sourceOrder = this.models["pos.order"].getBy("uuid", orderUuid);
+        if (!sourceOrder) {
+            return;
+        }
+
+        if (destinationOrder?.uuid === sourceOrder.uuid) {
+            return;
+        }
+
+        if (destinationTable) {
+            if (!this.prepareOrderTransfer(sourceOrder, destinationTable)) {
+                await this.syncAllOrders({ orders: [sourceOrder] });
+                return;
+            }
+
+            destinationOrder = this._getStrictTableMergeTarget(destinationTable, sourceOrder);
+            if (!destinationOrder) {
+                sourceOrder.table_id = destinationTable;
+                this.setOrder(sourceOrder);
+                await this.syncAllOrders({ orders: [sourceOrder] });
+                await this.setTable(destinationTable);
+                return;
+            }
+        }
+
+        await this.mergeOrders(sourceOrder, destinationOrder);
+        if (destinationTable) {
+            await this.setTable(destinationTable);
+        }
+    },
+    async mergeTableOrders(orderUuid, destinationTable) {
+        const sourceOrder = this.models["pos.order"].getBy("uuid", orderUuid);
+        if (!sourceOrder) {
+            return;
+        }
+
+        if (!this.prepareOrderTransfer(sourceOrder, destinationTable)) {
+            await this.syncAllOrders({ orders: [sourceOrder] });
+            return;
+        }
+
+        const destinationOrder = this._getStrictTableMergeTarget(destinationTable, sourceOrder);
+        if (!destinationOrder) {
+            sourceOrder.table_id = destinationTable;
+            this.setOrder(sourceOrder);
+            await this.syncAllOrders({ orders: [sourceOrder] });
+            await this.setTable(destinationTable);
+            return;
+        }
+
+        await this.mergeOrders(sourceOrder, destinationOrder);
+        await this.setTable(destinationTable);
+    },
     getTableOrders(tableId) {
         const table = this.models["restaurant.table"].get(tableId);
         if (!table) {

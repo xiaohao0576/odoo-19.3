@@ -168,7 +168,7 @@ patch(PosStore.prototype, {
             const orphanLine = sourceOrder.lines[0];
             const destinationLine = destOrder?.lines?.find((l) => l.canBeMergedWith(orphanLine));
             let uuid = "";
-            if (destinationLine) {
+            if (!this.config.module_pos_restaurant && destinationLine) {
                 destinationLine.merge(orphanLine);
                 uuid = destinationLine.uuid;
                 this.handlePreparationHistory(

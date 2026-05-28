@@ -1089,7 +1089,7 @@ msgstr "%(old_pm)s 金额从 %(old_amount)s 更改为 %(new_amount)s"
 #. odoo-javascript
 #: code:addons/point_of_sale/static/src/app/components/popups/number_popup/number_popup.js:0
 msgid "Amount of guests"
-msgstr ""
+msgstr "客人数量"
 
 #. module: point_of_sale
 #: model:ir.model.fields,field_description:point_of_sale.field_pos_close_session_wizard__amount_to_balance

@@ -505,6 +505,7 @@ export class SelfOrder extends Reactive {
             // Step 4: Persist order on server (x_sync_from_ui merges by table_id)
             const order = await this.sendNewOrderToServer();
             if (!order) {
+                this.handleErrorNotification(new ConnectionLostError());
                 return;
             }
             this.confirmationPage("order", device, order.access_token);

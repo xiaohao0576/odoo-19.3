@@ -1,3 +1,5 @@
+import json
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.fields import Command
@@ -155,7 +157,7 @@ class PosSettleDueWizard(models.TransientModel):
                 'price_extra': 0,
                 'price_type': 'manual',
                 'refunded_qty': 0,
-                'note': _('Settled source order: %(order_name)s', order_name=order.name),
+                'note': json.dumps([{'text': _('Settled source order: %(order_name)s', order_name=order.name), 'colorIndex': 0}]),
                 'tax_ids': [Command.clear()],
                 'settled_order_id': order.id,
             }))

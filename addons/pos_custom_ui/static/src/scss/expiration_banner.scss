@@ -1,0 +1,62 @@
+.pos-expiration-banner-overlay {
+    position: fixed;
+    top: 0.2rem;
+    left: 0;
+    right: 0;
+    z-index: 1045;
+    display: flex;
+    justify-content: center;
+    padding: 0 0.6rem;
+
+    .pos-expiration-banner-card {
+        width: auto;
+        max-width: calc(100vw - 1.2rem);
+        border-radius: 0.4rem;
+        border: 1px solid rgba(0, 0, 0, 0.18);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+        padding: 0.42rem 0.85rem;
+        font-size: 1.04rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        line-height: 1.3;
+        text-align: center;
+        pointer-events: none;
+    }
+
+    .pos-expiration-banner-message,
+    .pos-expiration-banner-deadline {
+        white-space: nowrap;
+    }
+
+    .pos-expiration-banner-divider {
+        margin: 0 0.4rem;
+        opacity: 0.85;
+    }
+
+    &.is-warning .pos-expiration-banner-card {
+        background: #fff3cd;
+        color: #7a1600;
+    }
+
+    &.is-expired .pos-expiration-banner-card {
+        background: #7f0f18;
+        color: #fff7f8;
+    }
+
+    @media (max-width: 767.98px) {
+        .pos-expiration-banner-card {
+            font-size: 0.92rem;
+            padding: 0.36rem 0.58rem;
+            line-height: 1.25;
+        }
+
+        .pos-expiration-banner-message,
+        .pos-expiration-banner-deadline {
+            white-space: normal;
+        }
+
+        .pos-expiration-banner-divider {
+            display: none;
+        }
+    }
+}

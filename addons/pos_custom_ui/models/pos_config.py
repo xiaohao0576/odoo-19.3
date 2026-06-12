@@ -1,4 +1,4 @@
-from odoo import api, models
+from odoo import api, fields, models
 
 
 class PosConfig(models.Model):
@@ -14,4 +14,5 @@ class PosConfig(models.Model):
                 .get_str("database.expiration_date", default=False)
             )
             read_records[0]["_expiration_date"] = expiration_date or False
+            read_records[0]["_expiration_server_now_utc"] = fields.Datetime.now()
         return read_records

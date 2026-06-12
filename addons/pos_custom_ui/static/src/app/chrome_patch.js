@@ -39,13 +39,17 @@ patch(Chrome.prototype, {
 
     _resolveTimezone() {
         const candidate =
-            user.tz || Intl.DateTimeFormat().resolvedOptions().timeZone || "local";
+            this.pos?.user?.tz ||
+            user.tz ||
+            Intl.DateTimeFormat().resolvedOptions().timeZone ||
+            "local";
         const zoneDate = DateTime.now().setZone(candidate);
         return zoneDate.isValid ? candidate : "local";
     },
 
     _parseServerNowUtc() {
-        const serverDate = this.pos?.config?._data_server_date;
+        const serverDate =
+            this.pos?.config?._expiration_server_now_utc || this.pos?.config?._data_server_date;
         if (!serverDate) {
             return DateTime.utc();
         }

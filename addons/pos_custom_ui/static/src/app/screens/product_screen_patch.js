@@ -8,6 +8,6 @@ patch(ProductScreen.prototype, {
         if (!price) {
             return baseName;
         }
-        return `${baseName} | ${price}`;
+        return `${price} | ${baseName}`;
     },
 });
